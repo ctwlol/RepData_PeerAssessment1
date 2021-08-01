@@ -1,25 +1,145 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+# PA1_template
+==============
+
+## Loading and prepocessing the data
+
+```{r}
+setwd("C:/DR for 3 month")
+activitydata <- read.csv("activity.csv", header=TRUE)
+activitydata <- data.frame(activitydata)
+```
+
+## Mean total number of steps taken per day 
+
+### Calculate total steps taken per day
+
+```{r}
+totalsteps <- aggregate(activitydata$steps,
+                        by = list(activitydata$date),
+                        FUN = sum,
+                        na.rm = TRUE)
+
+names(totalsteps) <- c("date","total")
+```
+
+### Histogram, Mean, and Median
+
+```{r}
+hist(totalsteps$total, 
+     main = "Total number of steps taken each day",
+     xlab = "Number of steps")
+
+mean(totalsteps$total)
+median(totalsteps$total)
+```
 
 
-## Loading and preprocessing the data
+
+## Average daily activity pattern
+
+```{r}
+meandata <- aggregate(activitydata$steps,
+                        by = list(activitydata$interval),
+                        FUN = mean, 
+                        na.rm = TRUE)
+names(meandata) <- c("interval","mean")
+```
+
+### create plot
+
+```{r}
+plot(meandata$interval, meandata$mean, type="l",
+     xlab = "5-minute interval",
+     ylab = "average number of steps",
+     main = "Average daily activity pattern")
+max_interval <- meandata[which.max(meandata$mean),]
+max_interval
+```
+
+## Inputing missing values
+
+### calculate and report the total number of missing values
+
+```{r}
+missingvalues <- sum(is.na(activitydata$steps))
+```
+
+There are `r missingvalues` missing values.
+
+### replace missing values
+
+```{r}
+findmissingvalues <- which(is.na(activitydata$steps))
+
+replace_data <- rep.int(mean(activitydata$steps, na.rm = TRUE),
+                        times = length(findmissingvalues))
+```
+
+### create a new dataset where missing values filled in
+
+```{r}
+activitydata[findmissingvalues, "steps"] <- replace_data
+```
+
+### histogram
+```{r}
+totalsteps <- aggregate(activitydata$steps,
+                        by = list(activitydata$date),
+                        FUN = sum 
+                        )
+
+names(totalsteps) <- c("date","total")
+
+hist(totalsteps$total, 
+     main = "Total number of steps taken each day; replaced missing value",
+     xlab = "Number of steps")
+
+mean(totalsteps$total)
+median(totalsteps$total)
+```
+
+## Differences in activity patterns between weekdays and weekends
+
+```{r}
+library(lattice)
+activitydata$date <- as.Date(activitydata$date)
+
+activitydata <- data.frame(date = activitydata$date,
+                           weekday = tolower(weekdays(activitydata$date)),
+                           steps = activitydata$steps,
+                           interval = activitydata$interval)
 
 
+activitydata <- cbind(activitydata,
+                      daytype = ifelse(activitydata$weekday == "星期六" |
+                                        activitydata$weekday == "星期日", "weekend", "weekday"
+                                      ))
 
-## What is mean total number of steps taken per day?
+activitydata <- data.frame(date = activitydata$date,
+                           activitydata$weekday,
+                           activitydata$daytype,
+                           activitydata$steps,
+                           activitydata$interval)
+
+names(activitydata) <- c("date", "weekday", "daytype", "steps", "interval")
 
 
+```
 
-## What is the average daily activity pattern?
+```{r}
+mean_data <- aggregate(activitydata$steps,
+                       by = list(activitydata$daytype, 
+                                 activitydata$weekday,
+                                 activitydata$interval), FUN = mean)
+names(mean_data) <- c("daytype", "weekday", "interval", "mean")
 
+```
 
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+```{r}
+xyplot(mean ~ interval | daytype, mean_data,
+       type = "l",
+       xlab = "Interval",
+       ylab = "Steps number",
+       layout=c(1,2),
+)
+```
